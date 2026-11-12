@@ -16,3 +16,17 @@
 .radar-saved-list{margin-top:18px}.radar-saved-row{display:flex;justify-content:space-between;gap:16px;align-items:center;border-top:1px solid #eae4da;padding:17px 0}.radar-saved-info{flex:1;min-width:0}.radar-saved-name{font-weight:bold;font-size:13px}.radar-saved-name span{color:#99918a;font-size:11px;font-weight:normal}.radar-saved-info p{font-size:10px;color:#928b81;margin:6px 0 0;line-height:1.6}.radar-saved-summary{max-width:700px}.radar-approvals-link{border:0;background:none;font-size:11px;color:var(--blue);font-weight:700;padding:16px 0 0;display:flex;align-items:center;gap:10px}.radar-warning{display:flex;align-items:start;gap:10px;padding:12px 4px 18px;color:#888176}.radar-warning p{font-size:10px;line-height:1.6;margin:0}.radar-muted{font-size:10px;color:#857e74;margin:0}
 @media(max-width:1130px){.radar-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.radar-search-controls{grid-template-columns:1fr 1fr}.radar-search-button{width:100%}}
 @media(max-width:600px){.radar-hero{padding:23px 20px}.radar-hero h2{font-size:26px}.radar-hero-icon{width:44px;height:44px;flex:none}.radar-hero-icon svg{width:25px}.radar-card-grid{grid-template-columns:1fr}.radar-section-heading{flex-direction:column;gap:5px}.radar-search-controls{grid-template-columns:1fr}.radar-saved-row{flex-direction:column;align-items:stretch}.radar-saved-row button{align-self:flex-start}}
+
+/* Contatos editáveis e ações de abertura manual */
+.radar-contact-summary{display:flex;flex-direction:column;gap:7px;margin:12px 0 8px;font-size:11px;color:#625f5b;overflow-wrap:anywhere}
+.radar-contact-summary span{display:flex;align-items:center;gap:7px}.radar-contact-summary svg{flex:none;color:var(--blue)}
+.radar-edit-button{padding:4px 0;background:none;border:0;text-decoration:underline;text-underline-offset:3px;color:var(--blue);font-size:11px;font-weight:700}
+.radar-contact-form{margin:12px 0;padding:16px;background:#f4f0e8;border:1px solid #e5ded1;border-radius:9px;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:650px}
+.radar-contact-form label{font-size:10px;font-weight:700;color:#645f55;display:flex;flex-direction:column;gap:6px}
+.radar-contact-form input{border:1px solid #d9d1c3;border-radius:6px;padding:11px;background:#fffefa;font-size:12px;min-width:0;width:100%;outline-color:var(--blue)}
+.radar-contact-buttons{display:flex;gap:9px;grid-column:1/-1}
+.radar-contact-form small{grid-column:1/-1;color:#888276;line-height:1.5}
+.radar-proposal-actions{display:flex;flex-direction:column;gap:8px;min-width:160px;align-items:stretch}
+.radar-proposal-actions button{justify-content:flex-start}
+.delivery-note{font-size:10px;color:#888178;line-height:1.5;margin:10px 0 0}
+@media(max-width:600px){.radar-contact-form{grid-template-columns:1fr}.radar-proposal-actions{width:100%}.radar-proposal-actions button{justify-content:center}}

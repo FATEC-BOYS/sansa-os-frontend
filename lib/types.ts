@@ -23,6 +23,13 @@ export interface Approval {
   agent: string;
   kind: string;
   status: string;
+  channel?: "email" | "whatsapp" | null;
+  prospect?: {
+    id: string;
+    name: string;
+    contactEmail: string | null;
+    contactWhatsapp: string | null;
+  } | null;
   createdAt: string;
   reviewedAt?: string | null;
 }

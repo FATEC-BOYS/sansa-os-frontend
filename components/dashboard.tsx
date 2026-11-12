@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type {Overview, Lead, Approval} from "@/lib/types";
 import LocalRadar from "@/components/local-radar";
+import {getManualOutboundLink} from "@/lib/outreach";
 
 type Tab = "overview" | "crm" | "radar" | "approvals" | "agents" | "activity";
 const nav = [
@@ -53,11 +54,24 @@ function ApprovalList({items,busy,onReview}:{items:Approval[];busy:boolean;onRev
     <div className="approval-top"><span className="eyebrow">{item.agent.replace("_"," ")} / {item.kind.replaceAll("_"," ")}</span>
       <Status label={item.status === "pending" ? "Aguardando" : item.status === "approved" ? "Aprovado" : "Rejeitado"} kind={item.status === "pending" ? "warning" : item.status === "approved" ? "ok" : "muted"}/></div>
     <h3>{item.title}</h3><p>{item.summary}</p><details><summary>Visualizar conteúdo</summary><pre className="draft-content">{item.content}</pre></details>
-    <div className="approval-bottom"><span className="quiet">Criado em {datetime(item.createdAt)}</span>
+    <div className="approval-bottom"><span className="quiet">Criado em {datetime(item.createdAt)}{item.channel && ` · Canal: ${item.channel==="whatsapp"?"WhatsApp":"E-mail"}`}</span>
     {item.status === "pending" && <div className="approval-actions">
       <button className="btn-ghost small" disabled={busy} onClick={()=>onReview(item.id,"rejected")}><X size={15}/> Rejeitar</button>
       <button className="btn-primary small" disabled={busy} onClick={()=>onReview(item.id,"approved")}><Check size={15}/> Aprovar rascunho</button>
-    </div>}</div>
+    </div>}
+    {item.status==="approved" && getManualOutboundLink(item) && <a
+      className="btn-primary small"
+      target={item.channel==="whatsapp"?"_blank":undefined}
+      rel={item.channel==="whatsapp"?"noopener noreferrer":undefined}
+      href={getManualOutboundLink(item)!.href}>
+      <ExternalLink size={14}/> {getManualOutboundLink(item)!.label}
+    </a>}
+    </div>
+    {item.status==="approved"&&item.channel&&<p className="delivery-note">
+      {getManualOutboundLink(item)
+        ?`Destinatário atual: ${getManualOutboundLink(item)!.recipient}. A mensagem será aberta no aplicativo, mas o envio depende de você.`
+        :"Cadastre ou corrija o contato na aba Radar local para habilitar a abertura da proposta."}
+    </p>}
   </article>)}</div>;
 }
 function formatMetric(value:number|undefined):string {
@@ -181,7 +195,7 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
         {tab==="radar" && <LocalRadar onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
-        {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Ações preparadas não são enviadas automaticamente — mesmo depois da aprovação.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}/></section>}
+        {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}/></section>}
 
         {tab==="agents" && <><div className="agent-banner"><Sparkles size={20}/><div><strong>Os agentes têm contratos, mas não estão executando.</strong><p>Ter prompts no GitHub não significa que há um worker ativo. O status só muda quando houver execução real e auditoria.</p></div></div>
           <div className="agent-grid">{(data?.agents ?? [
@@ -204,7 +218,7 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
     {showComposer && <div className="modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setShowComposer(false);}}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-title">
       <div className="modal-head"><div><span className="eyebrow">NEW ACTION / V0.1</span><h2 id="draft-title">Criar rascunho</h2></div><button className="icon-link" aria-label="Fechar" onClick={()=>setShowComposer(false)}><X size={20}/></button></div>
-      <p>Registre uma proposta de ação para revisar depois. Nada será enviado.</p>
+      <p>Registre uma proposta de ação para revisar depois. Para propostas direcionadas ao WhatsApp ou e-mail, use o Radar local. Nada será enviado automaticamente.</p>
       <form onSubmit={e=>void createDraft(e)} className="draft-form">
         <div className="field-pair"><label>Departamento<select value={draft.agent} onChange={e=>setDraft({...draft,agent:e.target.value})}><option value="commercial">Comercial</option><option value="customer_success">Atendimento</option><option value="creative">Criação</option><option value="projects">Projetos</option><option value="finance">Financeiro</option><option value="operations">Operações</option></select></label>
         <label>Tipo<select value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})}><option value="internal_note">Nota interna</option><option value="email_draft">Rascunho de e-mail</option><option value="followup_draft">Follow-up</option><option value="briefing">Briefing</option><option value="project_task">Tarefa de projeto</option></select></label></div>

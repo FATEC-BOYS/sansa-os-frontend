@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useState} from "react";
-import {ArrowRight,Check,CheckCircle2,ChevronDown,ExternalLink,Globe2,LoaderCircle,MapPin,Search,ShieldCheck,Sparkles} from "lucide-react";
+import {ArrowRight,Check,CheckCircle2,ChevronDown,ExternalLink,Globe2,LoaderCircle,MapPin,Mail,MessageCircle,Search,ShieldCheck,Sparkles} from "lucide-react";
 
 type Candidate={
   sourceKey:string;name:string;category:string;lat:number;lon:number;website:string|null;
@@ -12,6 +12,8 @@ type SavedProspect={
   id:string;sourceKey:string;name:string;category:string;website:string|null;
   priorityScore:number;scoreEvidence:string;status:string;analysisMode?:string|null;analysisSummary?:string|null;
   createdAt:string;
+  contactEmail:string|null;
+  contactWhatsapp:string|null;
 };
 type Region={key:string;label:string;lat:number;lon:number};
 const regions:Region[]=[
@@ -28,7 +30,7 @@ function isSafeUrl(input:string|null) {
   if(!input)return false;
   try{const url=new URL(input);return url.protocol==="https:"||url.protocol==="http:";}catch{return false;}
 }
-async function callApi<T>(path:string,method:"GET"|"POST",body?:unknown):Promise<T> {
+async function callApi<T>(path:string,method:"GET"|"POST"|"PATCH",body?:unknown):Promise<T> {
   const response=await fetch(path,{
     method,headers:{"Content-Type":"application/json"},
     ...(body!==undefined?{body:JSON.stringify(body)}:{}),
@@ -54,6 +56,9 @@ export default function LocalRadar({onOpenApprovals}:{onOpenApprovals:()=>void})
   const [notice,setNotice]=useState<string|null>(null);
   const [lastMode,setLastMode]=useState<"ai"|"rules"|null>(null);
   const [showSaved,setShowSaved]=useState(true);
+  const [editingContactId,setEditingContactId]=useState<string|null>(null);
+  const [contactForm,setContactForm]=useState({email:"",whatsapp:""});
+  const [savingContacts,setSavingContacts]=useState(false);
 
   async function loadSaved() {
     const items=await callApi<SavedProspect[]>("/api/discovery/prospects","GET");
@@ -88,15 +93,35 @@ export default function LocalRadar({onOpenApprovals}:{onOpenApprovals:()=>void})
     }catch(e){setError(e instanceof Error?e.message:"Não foi possível salvar");}
     finally{setSaving(null);}
   }
-  async function draft(item:SavedProspect){
-    setError(null);setNotice(null);setDrafting(item.id);
+  function editContacts(item:SavedProspect){
+    setEditingContactId(item.id);
+    setContactForm({email:item.contactEmail??"",whatsapp:item.contactWhatsapp??""});
+    setError(null);
+  }
+  async function saveContacts(event:React.FormEvent<HTMLFormElement>,item:SavedProspect){
+    event.preventDefault();
+    setSavingContacts(true);
+    setError(null);setNotice(null);
+    try{
+      await callApi(`/api/discovery/prospects/${encodeURIComponent(item.id)}/contacts`,"PATCH",{
+        email:contactForm.email.trim()||null,
+        whatsapp:contactForm.whatsapp.trim()||null
+      });
+      await loadSaved();
+      setEditingContactId(null);
+      setNotice(`Contatos de ${item.name} atualizados. Nenhuma mensagem enviada.`);
+    }catch(e){setError(e instanceof Error?e.message:"Erro ao salvar contatos");}
+    finally{setSavingContacts(false);}
+  }
+  async function draft(item:SavedProspect,channel:"email"|"whatsapp"){
+    setError(null);setNotice(null);setDrafting(item.id+":"+channel);
     try{
       const result=await callApi<{mode?:"ai"|"rules";reused?:boolean}>(
-        `/api/discovery/prospects/${encodeURIComponent(item.id)}/draft`,"POST",{}
+        `/api/discovery/prospects/${encodeURIComponent(item.id)}/draft`,"POST",{channel}
       );
       setLastMode(result.mode??null);
       setNotice(result.reused?
-        "Já existe um rascunho pendente para este comércio. Abra Aprovações para revisar.":
+        `Já existe um rascunho de ${channel==="email"?"e-mail":"WhatsApp"} pendente para este comércio. Abra Aprovações para revisar.`:
         result.mode==="ai"?
           "Análise com IA registrada e rascunho criado para revisão — nada foi enviado.":
           "Rascunho conservador por regras criado. Configure OPENAI_API_KEY no backend para usar IA."
@@ -171,18 +196,50 @@ export default function LocalRadar({onOpenApprovals}:{onOpenApprovals:()=>void})
       <button className="radar-toggle" onClick={()=>setShowSaved(!showSaved)} aria-expanded={showSaved}><div><span className="eyebrow">03 / PESQUISA</span><h2>Fila de investigação <span>({saved.length})</span></h2></div><ChevronDown className={showSaved?"":"rotated"} size={20}/></button>
       {showSaved&&(saved.length===0?<div className="radar-empty slim"><Sparkles size={25}/><p>Selecione um comércio acima para iniciar uma análise individual.</p></div>:
         <div className="radar-saved-list">{saved.map(item=><article key={item.id} className="radar-saved-row">
-          <div className="radar-saved-info"><div className="radar-saved-name">{item.name} <span>· {item.category}</span></div>
+          <div className="radar-saved-info">
+            <div className="radar-saved-name">{item.name} <span>· {item.category}</span></div>
             <p>Prioridade {item.priorityScore}/100 · {item.analysisMode==="ai"?"Analisado com IA":item.analysisMode==="rules"?"Análise baseada em regras":"Aguardando análise"}</p>
             {item.analysisSummary&&<p className="radar-saved-summary">{item.analysisSummary}</p>}
+            <div className="radar-contact-summary">
+              <span><Mail size={13}/>{item.contactEmail || "E-mail não cadastrado"}</span>
+              <span><MessageCircle size={13}/>{item.contactWhatsapp || "WhatsApp não cadastrado"}</span>
+            </div>
+            {editingContactId===item.id
+              ? <form className="radar-contact-form" onSubmit={event=>void saveContacts(event,item)}>
+                  <label>E-mail comercial
+                    <input type="email" maxLength={254} placeholder="contato@empresa.com.br" value={contactForm.email}
+                      onChange={e=>setContactForm({...contactForm,email:e.target.value})}/>
+                  </label>
+                  <label>WhatsApp com DDD
+                    <input type="tel" inputMode="tel" maxLength={30} placeholder="(11) 99999-9999" value={contactForm.whatsapp}
+                      onChange={e=>setContactForm({...contactForm,whatsapp:e.target.value})}/>
+                  </label>
+                  <div className="radar-contact-buttons">
+                    <button type="button" className="btn-ghost small" disabled={savingContacts} onClick={()=>setEditingContactId(null)}>Cancelar</button>
+                    <button type="submit" className="btn-primary small" disabled={savingContacts}>
+                      {savingContacts?"Salvando...":"Salvar contatos"}
+                    </button>
+                  </div>
+                  <small>Deixe um campo vazio e salve para apagá-lo. Cadastre apenas contatos comerciais apropriados.</small>
+                </form>
+              : <button className="radar-edit-button" type="button" onClick={()=>editContacts(item)}>Cadastrar / editar contatos</button>}
           </div>
-          <button className="btn-outline small" disabled={drafting!==null||saving!==null} onClick={()=>void draft(item)}>
-            {drafting===item.id?<LoaderCircle size={15} className="spin"/>:<Sparkles size={15}/>}
-            {drafting===item.id?"Analisando...":"Preparar proposta"}
-          </button>
+          <div className="radar-proposal-actions">
+            <button className="btn-outline small" disabled={!item.contactWhatsapp||drafting!==null||savingContacts} onClick={()=>void draft(item,"whatsapp")}
+              title={!item.contactWhatsapp?"Cadastre um WhatsApp primeiro":undefined}>
+              {drafting===item.id+":whatsapp"?<LoaderCircle size={15} className="spin"/>:<MessageCircle size={15}/>}
+              Proposta WhatsApp
+            </button>
+            <button className="btn-outline small" disabled={!item.contactEmail||drafting!==null||savingContacts} onClick={()=>void draft(item,"email")}
+              title={!item.contactEmail?"Cadastre um e-mail primeiro":undefined}>
+              {drafting===item.id+":email"?<LoaderCircle size={15} className="spin"/>:<Mail size={15}/>}
+              Proposta e-mail
+            </button>
+          </div>
         </article>)}
         <button className="radar-approvals-link" onClick={onOpenApprovals}>Revisar rascunhos na central de aprovações <ArrowRight size={16}/></button>
         </div>)}
     </section>
-    <div className="radar-warning"><ShieldCheck size={17}/><p>A SANSA não envia e-mails nem adiciona negócios ao CRM original nesta etapa. Pesquisar, salvar e preparar rascunhos são ações separadas e registradas.</p></div>
+    <div className="radar-warning"><ShieldCheck size={17}/><p>Depois da aprovação, você abre a proposta no WhatsApp ou no e-mail e envia manualmente. Os contatos podem ser corrigidos a qualquer momento; o CRM original e as automações externas não são alterados.</p></div>
   </div>;
 }

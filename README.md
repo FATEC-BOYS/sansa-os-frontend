@@ -39,3 +39,10 @@ Na aba **Radar local**, escolha região (Centro de SBC, Santo André ou São Cae
 - Com chave, a API Responses elabora texto e justificativa estruturados usando os fatos disponíveis.
 - Não existe envio automático de e-mail; as automações anteriores do ChatGPT permanecem intactas.
 - Dados do mapa: © OpenStreetMap contributors, licença ODbL. Não confunda ausência de website no mapa com ausência de site.
+
+## Propostas por e-mail e WhatsApp (v0.3)
+Na aba **Radar local**, cada comércio salvo tem **dois campos editáveis**: `E-mail comercial` e `WhatsApp com DDD`. É possível cadastrar, alterar e remover ambos independentemente. Use `Cadastrar / editar contatos` e depois escolha **Proposta e-mail** ou **Proposta WhatsApp**.
+
+O texto é preparado para o canal, fica na **Central de aprovações** e, depois de aprovado, exibe **Abrir e-mail** (link `mailto:` com assunto/corpo) ou **Abrir no WhatsApp** (link `wa.me` com mensagem). A abertura do aplicativo **não envia** a mensagem; você revisa e confirma o envio. Se o contato for corrigido posteriormente, o botão usa o contato atual.
+
+Não existe disparo automático ou envio em massa. O CRM Google Sheets e as automações já existentes permanecem preservados. Em produção, proteja o painel e o banco com login/RBAC e controle de acesso.
