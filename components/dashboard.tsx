@@ -5,14 +5,16 @@ import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Bot,
   Check, CheckCircle2, ChevronRight, CircleAlert, ClipboardCheck,
   Clock3, ContactRound, ExternalLink, FileText, GitBranch, LayoutDashboard,
-  LockKeyhole, Mail, Plus, RefreshCw, ShieldCheck, Sparkles, X
+  LockKeyhole, Mail, MapPin, Plus, RefreshCw, ShieldCheck, Sparkles, X
 } from "lucide-react";
 import type {Overview, Lead, Approval} from "@/lib/types";
+import LocalRadar from "@/components/local-radar";
 
-type Tab = "overview" | "crm" | "approvals" | "agents" | "activity";
+type Tab = "overview" | "crm" | "radar" | "approvals" | "agents" | "activity";
 const nav = [
   {id:"overview",label:"Visão geral",icon:LayoutDashboard},
   {id:"crm",label:"CRM & pipeline",icon:ContactRound},
+  {id:"radar",label:"Radar local",icon:MapPin},
   {id:"approvals",label:"Aprovações",icon:ClipboardCheck},
   {id:"agents",label:"Agentes",icon:Bot},
   {id:"activity",label:"Atividade",icon:Activity}
@@ -125,8 +127,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
       <main className="content">
         <div className="page-heading"><div><div className="eyebrow header-eyebrow"><span className="red-square"/> COMMAND CENTER / SANSA 001</div>
-          <h1>{tab==="overview"?"Sua agência, sob controle.":tab==="crm"?"Relações que importam.":tab==="approvals"?"Nada acontece no escuro.":tab==="agents"?"Inteligência com direção.":"Cada ação deixa um rastro."}</h1>
-          <p className="lead-copy">{tab==="overview"?"Um lugar para acompanhar trabalho real, decisões e integrações — sem prometer automação que ainda não existe.":tab==="crm"?"O mesmo CRM de sempre. Agora com uma visão operacional, sem duplicar a fonte dos dados.":tab==="approvals"?"Propostas ficam registradas para sua decisão. Aprovar não executa nem envia nada nesta versão.":tab==="agents"?"Especificações versionadas, ferramentas restritas e status verificável.":"Histórico de sincronizações e decisões registradas no backend."}</p></div>
+          <h1>{tab==="overview"?"Sua agência, sob controle.":tab==="crm"?"Relações que importam.":tab==="radar"?"Oportunidades perto de você.":tab==="approvals"?"Nada acontece no escuro.":tab==="agents"?"Inteligência com direção.":"Cada ação deixa um rastro."}</h1>
+          <p className="lead-copy">{tab==="overview"?"Um lugar para acompanhar trabalho real, decisões e integrações — sem prometer automação que ainda não existe.":tab==="crm"?"O mesmo CRM de sempre. Agora com uma visão operacional, sem duplicar a fonte dos dados.":tab==="radar"?"Encontre comércios locais, investigue sinais verificáveis e prepare uma abordagem antes de decidir enviar.":tab==="approvals"?"Propostas ficam registradas para sua decisão. Aprovar não executa nem envia nada nesta versão.":tab==="agents"?"Especificações versionadas, ferramentas restritas e status verificável.":"Histórico de sincronizações e decisões registradas no backend."}</p></div>
           <div className="page-actions"><button disabled={busy} className="btn-outline" onClick={()=>void perform("/api/crm/sync","POST",{},"CRM sincronizado. Planilha original preservada.")}><RefreshCw size={16} className={busy?"spin":""}/> Sincronizar CRM</button>
             <button className="btn-primary" onClick={()=>setShowComposer(true)}><Plus size={17}/> Nova ação</button></div>
         </div>
@@ -176,6 +178,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
         {tab==="crm" && <section className="panel table-panel"><div className="panel-top"><div><span className="eyebrow">SINGLE SOURCE OF TRUTH</span><h2>Oportunidades e contatos</h2><p>Espelho somente leitura dos dados atuais do Google Sheets.</p></div><div className="row-actions"><span className="count-chip">{data?.leads.length ?? 0} registros</span><span className="quiet">Fonte: CRM existente</span></div></div>
           <LeadTable leads={data?.leads ?? []}/><div className="footnote">Atualizado em: {datetime(data?.crm.lastSyncedAt)} · Alterações de oportunidades devem ser feitas na planilha original.</div></section>}
+
+        {tab==="radar" && <LocalRadar onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
         {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Ações preparadas não são enviadas automaticamente — mesmo depois da aprovação.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}/></section>}
 

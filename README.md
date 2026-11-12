@@ -31,3 +31,11 @@ O botão **Sincronizar CRM** chama o backend, que lê a planilha Google Sheets o
 - **Visibilidade GitHub:** na criação, os repositórios apareceram como públicos. Antes de incluir dados operacionais, altere-os para privados em Settings → General → Danger Zone → Change repository visibility.
 
 Repos relacionados: `sansa-os-backend-` e `sansa-os-agents`.
+
+## Radar local — comércios e propostas
+Na aba **Radar local**, escolha região (Centro de SBC, Santo André ou São Caetano), segmento e raio. A pesquisa em OpenStreetMap retorna uma classificação preliminar explicável e detecta possíveis duplicatas no CRM. Escolha quais empresas devem entrar na **fila de investigação**; esta fila não altera o Google Sheets original. Em cada oportunidade salva, o botão **Preparar proposta** cria uma avaliação e um rascunho para Aprovações.
+
+- Sem chave `OPENAI_API_KEY` no backend, o rascunho usa regras conservadoras, **não é IA**.
+- Com chave, a API Responses elabora texto e justificativa estruturados usando os fatos disponíveis.
+- Não existe envio automático de e-mail; as automações anteriores do ChatGPT permanecem intactas.
+- Dados do mapa: © OpenStreetMap contributors, licença ODbL. Não confunda ausência de website no mapa com ausência de site.
