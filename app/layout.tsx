@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./radar.css";
+import "./whatsapp.css";
 
 export const metadata: Metadata = {
   title: "SANSA OS — Oficina Digital",

@@ -52,3 +52,6 @@ No Radar local, selecione o **modelo que prepara a proposta**: Automático, Clau
 
 ## Worker de agentes (serviço independente)
 O repositório `sansa-os-agents` foi preparado para execução diária em Railway, às 10h (São Paulo) nos dias úteis. A aba **Agentes** consulta o backend e mostra status e hora da **última rodada efetivamente registrada** para Comercial e Operações. Os demais continuam não ativados até que haja implementações reais. Sem sincronização recente do Google Sheets, o Comercial deve aparecer bloqueado; o sistema não inventa propostas. Consulte o histórico em **Atividade**.
+
+## WhatsApp Meta — caixa de entrada preparada
+A aba **WhatsApp** consulta a nova API: status de credenciais da Meta, papéis dos cinco agentes, histórico real de mensagens recebidas, pedidos de revisão humana e rascunhos pendentes. Nenhuma conversa de demonstração é apresentada como real. O backend recebe webhooks assinados depois de configurar WABA, ID do número e App Secret, e a aplicação **não envia mensagens** até implementarmos autorização e as regras da Meta.
