@@ -38,6 +38,8 @@ export interface AgentInfo {
   name: string;
   description: string;
   status: string;
+  lastRunAt?: string | null;
+  lastRunStatus?: string | null;
 }
 export interface Activity {
   id: string;

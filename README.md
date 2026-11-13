@@ -49,3 +49,6 @@ Não existe disparo automático ou envio em massa. O CRM Google Sheets e as auto
 
 ## Claude ou GPT por proposta
 No Radar local, selecione o **modelo que prepara a proposta**: Automático, Claude, GPT ou Regras. A seleção ocorre no backend; as chaves permanecem protegidas na Railway e nunca são enviadas ao browser. Em Automático o sistema prioriza Claude, depois GPT, depois regras. A escolha explícita de um modelo sem chave mostra erro e não cria um rascunho falso. Um rascunho pendente por canal não é duplicado; rejeite-o antes de testar outro modelo para o mesmo comércio/canal.
+
+## Worker de agentes (serviço independente)
+O repositório `sansa-os-agents` foi preparado para execução diária em Railway, às 10h (São Paulo) nos dias úteis. A aba **Agentes** consulta o backend e mostra status e hora da **última rodada efetivamente registrada** para Comercial e Operações. Os demais continuam não ativados até que haja implementações reais. Sem sincronização recente do Google Sheets, o Comercial deve aparecer bloqueado; o sistema não inventa propostas. Consulte o histórico em **Atividade**.

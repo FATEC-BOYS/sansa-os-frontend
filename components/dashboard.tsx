@@ -169,7 +169,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
             <section className="panel"><div className="panel-top"><div><span className="eyebrow">SYSTEM CHECK</span><h2>Estado das integrações</h2></div><GitBranch size={20} className="muted-icon"/></div>
               <div className="integration-list">
                 <div className="integration"><div className="integration-symbol"><ContactRound size={19}/></div><div><strong>Google Sheets · CRM</strong><small>{crmSynced?`Última leitura: ${datetime(data?.crm.lastSyncedAt)}`:"Aguardando primeira sincronização"}</small></div><Status label={crmSynced?"Sincronizado":"Pendente"} kind={crmSynced?"ok":"warning"}/></div>
-                <div className="integration"><div className="integration-symbol"><Bot size={19}/></div><div><strong>Execução de agentes</strong><small>Contratos e prompts versionados</small></div><Status label="Não conectada"/></div>
+                <div className="integration"><div className="integration-symbol"><Bot size={19}/></div><div><strong>Execução de agentes</strong><small>Worker separado na Railway · comercial e operações</small></div>
+                  <Status label={data?.agents.some(a=>a.lastRunAt)?"Com histórico":"Sem execução"} kind={data?.agents.some(a=>a.status==="scheduled_active")?"ok":"warning"}/></div>
                 <div className="integration"><div className="integration-symbol"><Mail size={19}/></div><div><strong>Gmail</strong><small>Sem envio automático no SANSA OS</small></div><Status label="Não conectado"/></div>
                 <div className="integration"><div className="integration-symbol"><LockKeyhole size={19}/></div><div><strong>Automações do ChatGPT</strong><small>Existem fora deste sistema; preservadas</small></div><Status label="Externas"/></div>
               </div>
@@ -197,7 +198,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
         {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}/></section>}
 
-        {tab==="agents" && <><div className="agent-banner"><Sparkles size={20}/><div><strong>Os agentes têm contratos, mas não estão executando.</strong><p>Ter prompts no GitHub não significa que há um worker ativo. O status só muda quando houver execução real e auditoria.</p></div></div>
+        {tab==="agents" && <><div className="agent-banner"><Sparkles size={20}/><div><strong>{data?.agents.some(a=>a.lastRunAt)?"Execuções registradas pelo worker na Railway.":"Agentes prontos para executar na Railway."}</strong>
+            <p>O Comercial prepara apenas propostas revisáveis de oportunidades elegíveis; Operações verifica o estado real do sistema. Os demais agentes seguem em preparação. Nenhum deles envia mensagens automaticamente.</p></div></div>
           <div className="agent-grid">{(data?.agents ?? [
             {id:"commercial",name:"Comercial",description:"Prospeção e qualificação",status:"not_connected"},
             {id:"customer_success",name:"Atendimento",description:"Triagem e atendimento",status:"not_connected"},
@@ -205,7 +207,11 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
             {id:"projects",name:"Projetos",description:"Escopo e entregas",status:"not_connected"},
             {id:"finance",name:"Financeiro",description:"Acompanhamento",status:"not_connected"},
             {id:"operations",name:"Operações",description:"Visão operacional",status:"not_connected"}
-          ]).map((agent,i)=><article className="panel agent-card" key={agent.id}><div className="agent-number">0{i+1} / AGENT</div><div className="agent-avatar"><Bot size={23}/></div><h2>{agent.name}</h2><p>{agent.description}</p><div className="agent-status"><Status label="Não conectado"/><span>Spec v0.1</span></div></article>)}</div>
+          ]).map((agent,i)=><article className="panel agent-card" key={agent.id}><div className="agent-number">0{i+1} / AGENT</div><div className="agent-avatar"><Bot size={23}/></div><h2>{agent.name}</h2><p>{agent.description}</p><div className="agent-status">
+              <Status label={agent.status==="scheduled_active"?"Executou recentemente":agent.status==="blocked"?"Bloqueado":"Não ativado"}
+                kind={agent.status==="scheduled_active"?"ok":agent.status==="blocked"?"warning":"muted"}/>
+              <span>{agent.lastRunAt?`Último registro: ${datetime(agent.lastRunAt)}`:"Sem execução registrada"}</span>
+            </div></article>)}</div>
           <a className="agent-repo-link" href="https://github.com/FATEC-BOYS/sansa-os-agents" target="_blank" rel="noopener noreferrer"><GitBranch size={17}/> Consultar contratos dos agentes no GitHub <ArrowUpRight size={16}/></a>
         </>}
 
