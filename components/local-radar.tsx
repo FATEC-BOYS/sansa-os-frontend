@@ -56,6 +56,7 @@ export default function LocalRadar({onOpenApprovals}:{onOpenApprovals:()=>void})
   const [notice,setNotice]=useState<string|null>(null);
   const [lastMode,setLastMode]=useState<"ai"|"rules"|null>(null);
   const [showSaved,setShowSaved]=useState(true);
+  const [proposalProvider,setProposalProvider]=useState<"auto"|"anthropic"|"openai"|"rules">("auto");
   const [editingContactId,setEditingContactId]=useState<string|null>(null);
   const [contactForm,setContactForm]=useState({email:"",whatsapp:""});
   const [savingContacts,setSavingContacts]=useState(false);
@@ -116,15 +117,15 @@ export default function LocalRadar({onOpenApprovals}:{onOpenApprovals:()=>void})
   async function draft(item:SavedProspect,channel:"email"|"whatsapp"){
     setError(null);setNotice(null);setDrafting(item.id+":"+channel);
     try{
-      const result=await callApi<{mode?:"ai"|"rules";reused?:boolean}>(
-        `/api/discovery/prospects/${encodeURIComponent(item.id)}/draft`,"POST",{channel}
+      const result=await callApi<{mode?:"ai"|"rules";provider?:"anthropic"|"openai"|"rules";reused?:boolean}>(
+        `/api/discovery/prospects/${encodeURIComponent(item.id)}/draft`,"POST",{channel,provider:proposalProvider}
       );
       setLastMode(result.mode??null);
       setNotice(result.reused?
         `Já existe um rascunho de ${channel==="email"?"e-mail":"WhatsApp"} pendente para este comércio. Abra Aprovações para revisar.`:
         result.mode==="ai"?
-          "Análise com IA registrada e rascunho criado para revisão — nada foi enviado.":
-          "Rascunho conservador por regras criado. Configure OPENAI_API_KEY no backend para usar IA."
+          `Rascunho criado com ${result.provider==="anthropic"?"Claude":result.provider==="openai"?"GPT":"IA"} para revisão — nada foi enviado.`:
+          "Rascunho por regras criado. Configure a chave do Claude ou da OpenAI para usar IA."
       );
       await loadSaved();
     }catch(e){setError(e instanceof Error?e.message:"Não foi possível preparar proposta");}
@@ -194,6 +195,16 @@ export default function LocalRadar({onOpenApprovals}:{onOpenApprovals:()=>void})
 
     <section className="panel radar-shortlist">
       <button className="radar-toggle" onClick={()=>setShowSaved(!showSaved)} aria-expanded={showSaved}><div><span className="eyebrow">03 / PESQUISA</span><h2>Fila de investigação <span>({saved.length})</span></h2></div><ChevronDown className={showSaved?"":"rotated"} size={20}/></button>
+      {showSaved&&<div className="radar-model-picker">
+        <label htmlFor="radar-model">Modelo que prepara a proposta</label>
+        <select id="radar-model" value={proposalProvider} onChange={event=>setProposalProvider(event.target.value as "auto"|"anthropic"|"openai"|"rules")}>
+          <option value="auto">Automático (Claude → GPT → regras)</option>
+          <option value="anthropic">Claude</option>
+          <option value="openai">GPT</option>
+          <option value="rules">Regras (sem custo de IA)</option>
+        </select>
+        <span>Se um modelo não tiver chave configurada, a seleção explícita mostrará um erro. Nenhuma mensagem é enviada automaticamente.</span>
+      </div>}
       {showSaved&&(saved.length===0?<div className="radar-empty slim"><Sparkles size={25}/><p>Selecione um comércio acima para iniciar uma análise individual.</p></div>:
         <div className="radar-saved-list">{saved.map(item=><article key={item.id} className="radar-saved-row">
           <div className="radar-saved-info">

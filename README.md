@@ -46,3 +46,6 @@ Na aba **Radar local**, cada comércio salvo tem **dois campos editáveis**: `E-
 O texto é preparado para o canal, fica na **Central de aprovações** e, depois de aprovado, exibe **Abrir e-mail** (link `mailto:` com assunto/corpo) ou **Abrir no WhatsApp** (link `wa.me` com mensagem). A abertura do aplicativo **não envia** a mensagem; você revisa e confirma o envio. Se o contato for corrigido posteriormente, o botão usa o contato atual.
 
 Não existe disparo automático ou envio em massa. O CRM Google Sheets e as automações já existentes permanecem preservados. Em produção, proteja o painel e o banco com login/RBAC e controle de acesso.
+
+## Claude ou GPT por proposta
+No Radar local, selecione o **modelo que prepara a proposta**: Automático, Claude, GPT ou Regras. A seleção ocorre no backend; as chaves permanecem protegidas na Railway e nunca são enviadas ao browser. Em Automático o sistema prioriza Claude, depois GPT, depois regras. A escolha explícita de um modelo sem chave mostra erro e não cria um rascunho falso. Um rascunho pendente por canal não é duplicado; rejeite-o antes de testar outro modelo para o mesmo comércio/canal.
