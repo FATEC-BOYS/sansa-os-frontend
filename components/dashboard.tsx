@@ -5,7 +5,7 @@ import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Bot,
   Check, CheckCircle2, ChevronRight, CircleAlert, ClipboardCheck,
   Clock3, ContactRound, ExternalLink, FileText, GitBranch, LayoutDashboard,
-  LockKeyhole, Mail, MapPin, MessageCircle, BadgeCheck, Plus, RefreshCw, ShieldCheck, Sparkles, X
+  LockKeyhole, Mail, MapPin, MessageCircle, BadgeCheck, PencilLine, Plus, RefreshCw, ShieldCheck, Sparkles, X
 } from "lucide-react";
 import type {Overview, Lead, Approval} from "@/lib/types";
 import LocalRadar from "@/components/local-radar";
@@ -52,31 +52,55 @@ function LeadTable({leads}:{leads:Lead[]}) {
     </tr>)}
   </tbody></table></div>;
 }
-function ApprovalList({items,busy,onReview}:{items:Approval[];busy:boolean;onReview:(id:string,status:"approved"|"rejected")=>void}) {
+function ApprovalList({items,busy,onReview,onEdit}:{items:Approval[];busy:boolean;onReview:(id:string,status:"approved"|"rejected")=>void;onEdit:(id:string,title:string,content:string)=>Promise<boolean>}) {
+  const [editing,setEditing]=useState<{id:string;title:string;content:string}|null>(null);
+  const [copiedId,setCopiedId]=useState<string|null>(null);
   if (!items.length) return <EmptyState title="Nenhuma decisão pendente" description="Rascunhos e propostas de ações vão aparecer aqui antes de qualquer execução externa."/>;
-  return <div className="approvals-list">{items.map(item=><article className="approval-row" key={item.id}>
-    <div className="approval-top"><span className="eyebrow">{item.agent.replace("_"," ")} / {item.kind.replaceAll("_"," ")}</span>
-      <Status label={item.status === "pending" ? "Aguardando" : item.status === "approved" ? "Aprovado" : "Rejeitado"} kind={item.status === "pending" ? "warning" : item.status === "approved" ? "ok" : "muted"}/></div>
-    <h3>{item.title}</h3><p>{item.summary}</p><details><summary>Visualizar conteúdo</summary><pre className="draft-content">{item.content}</pre></details>
-    <div className="approval-bottom"><span className="quiet">Criado em {datetime(item.createdAt)}{item.channel && ` · Canal: ${item.channel==="whatsapp"?"WhatsApp":"E-mail"}`}</span>
-    {item.status === "pending" && <div className="approval-actions">
-      <button className="btn-ghost small" disabled={busy} onClick={()=>onReview(item.id,"rejected")}><X size={15}/> Rejeitar</button>
-      <button className="btn-primary small" disabled={busy} onClick={()=>onReview(item.id,"approved")}><Check size={15}/> Aprovar rascunho</button>
-    </div>}
-    {item.status==="approved" && getManualOutboundLink(item) && <a
-      className="btn-primary small"
-      target={item.channel==="whatsapp"?"_blank":undefined}
-      rel={item.channel==="whatsapp"?"noopener noreferrer":undefined}
-      href={getManualOutboundLink(item)!.href}>
-      <ExternalLink size={14}/> {getManualOutboundLink(item)!.label}
-    </a>}
-    </div>
-    {item.status==="approved"&&item.channel&&<p className="delivery-note">
-      {getManualOutboundLink(item)
-        ?`Destinatário atual: ${getManualOutboundLink(item)!.recipient}. A mensagem será aberta no aplicativo, mas o envio depende de você.`
-        :"Cadastre ou corrija o contato na aba Radar local para habilitar a abertura da proposta."}
-    </p>}
-  </article>)}</div>;
+  return <div className="approvals-list">{items.map(item=>{
+    const editable=item.status==="pending"&&["commercial_proposal","negotiation_reply"].includes(item.kind);
+    const draftEdit=editing?.id===item.id?editing:null;
+    return <article className="approval-row" key={item.id}>
+      <div className="approval-top"><span className="eyebrow">{item.agent.replace("_"," ")} / {item.kind.replaceAll("_"," ")}</span>
+        <Status label={item.status === "pending" ? "Aguardando" : item.status === "approved" ? "Aprovado" : "Rejeitado"} kind={item.status === "pending" ? "warning" : item.status === "approved" ? "ok" : "muted"}/></div>
+      <h3>{item.title}</h3><p>{item.summary}</p>
+      {draftEdit?<form className="sales-approval-editor" onSubmit={event=>{
+        event.preventDefault();
+        void (async()=>{
+          if(await onEdit(item.id,draftEdit.title,draftEdit.content))setEditing(null);
+        })();
+      }}>
+        <label>Título<input required maxLength={160} minLength={3} value={draftEdit.title} onChange={e=>setEditing({...draftEdit,title:e.target.value})}/></label>
+        <label>Texto da proposta ou negociação<textarea required rows={12} maxLength={20000} value={draftEdit.content} onChange={e=>setEditing({...draftEdit,content:e.target.value})}/></label>
+        <div className="approval-actions"><button type="button" className="btn-ghost small" disabled={busy} onClick={()=>setEditing(null)}>Cancelar</button>
+          <button type="submit" className="btn-primary small" disabled={busy}><Check size={14}/> Salvar edição</button></div>
+      </form>
+      :<details><summary>Visualizar conteúdo</summary><pre className="draft-content">{item.content}</pre></details>}
+      <div className="approval-bottom"><span className="quiet">Criado em {datetime(item.createdAt)}{item.channel && ` · Canal: ${item.channel==="whatsapp"?"WhatsApp":"E-mail"}`}</span>
+        {item.status==="pending"&&<div className="approval-actions">
+          {editable&&<button className="btn-outline small" disabled={busy} onClick={()=>setEditing({id:item.id,title:item.title,content:item.content})}><PencilLine size={14}/> Editar</button>}
+          <button className="btn-ghost small" disabled={busy} onClick={()=>onReview(item.id,"rejected")}><X size={15}/> Rejeitar</button>
+          <button className="btn-primary small" disabled={busy} onClick={()=>onReview(item.id,"approved")}><Check size={15}/> Aprovar rascunho</button>
+        </div>}
+        {item.status==="approved"&&<div className="approval-actions">
+          <button className="btn-outline small" onClick={()=>{
+            void navigator.clipboard.writeText(item.content).then(()=>setCopiedId(item.id)).catch(()=>setCopiedId(null));
+          }}><ClipboardCheck size={14}/>{copiedId===item.id?"Texto copiado":"Copiar texto"}</button>
+          {getManualOutboundLink(item)&&<a
+            className="btn-primary small"
+            target={item.channel==="whatsapp"?"_blank":undefined}
+            rel={item.channel==="whatsapp"?"noopener noreferrer":undefined}
+            href={getManualOutboundLink(item)!.href}>
+            <ExternalLink size={14}/> {getManualOutboundLink(item)!.label}
+          </a>}
+        </div>}
+      </div>
+      {item.status==="approved"&&item.channel&&item.prospect&&<p className="delivery-note">
+        {getManualOutboundLink(item)
+          ?`Destinatário atual: ${getManualOutboundLink(item)!.recipient}. A mensagem será aberta no aplicativo, mas o envio depende de você.`
+          :"Cadastre ou corrija o contato na aba Radar local para habilitar a abertura da proposta."}
+      </p>}
+    </article>;
+  })}</div>;
 }
 function formatMetric(value:number|undefined):string {
   return value === undefined ? "—" : value.toLocaleString("pt-BR");
@@ -204,7 +228,9 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
         {tab==="sales" && <SalesStudio onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
-        {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}/></section>}
+        {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}
+          onEdit={(id,title,content)=>perform("/api/sales/drafts/"+id,"PATCH",{title,content},"Rascunho comercial atualizado para revisão.")}
+          /></section>}
 
         {tab==="agents" && <><div className="agent-banner"><Sparkles size={20}/><div><strong>{data?.agents.some(a=>a.lastRunAt)?"Execuções registradas pelo worker na Railway.":"Agentes prontos para executar na Railway."}</strong>
             <p>O Comercial prepara apenas propostas revisáveis de oportunidades elegíveis; Operações verifica o estado real do sistema. Os demais agentes seguem em preparação. Nenhum deles envia mensagens automaticamente.</p></div></div>
