@@ -5,18 +5,20 @@ import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Bot,
   Check, CheckCircle2, ChevronRight, CircleAlert, ClipboardCheck,
   Clock3, ContactRound, ExternalLink, FileText, GitBranch, LayoutDashboard,
-  LockKeyhole, Mail, MapPin, MessageCircle, Plus, RefreshCw, ShieldCheck, Sparkles, X
+  LockKeyhole, Mail, MapPin, MessageCircle, BadgeCheck, Plus, RefreshCw, ShieldCheck, Sparkles, X
 } from "lucide-react";
 import type {Overview, Lead, Approval} from "@/lib/types";
 import LocalRadar from "@/components/local-radar";
 import WhatsAppInbox from "@/components/whatsapp-inbox";
+import SalesStudio from "@/components/sales-studio";
 import {getManualOutboundLink} from "@/lib/outreach";
 
-type Tab = "overview" | "crm" | "radar" | "whatsapp" | "approvals" | "agents" | "activity";
+type Tab = "overview" | "crm" | "radar" | "sales" | "whatsapp" | "approvals" | "agents" | "activity";
 const nav = [
   {id:"overview",label:"Visão geral",icon:LayoutDashboard},
   {id:"crm",label:"CRM & pipeline",icon:ContactRound},
   {id:"radar",label:"Radar local",icon:MapPin},
+  {id:"sales",label:"Propostas comerciais",icon:BadgeCheck},
   {id:"whatsapp",label:"WhatsApp",icon:MessageCircle},
   {id:"approvals",label:"Aprovações",icon:ClipboardCheck},
   {id:"agents",label:"Agentes",icon:Bot},
@@ -143,8 +145,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
       <main className="content">
         <div className="page-heading"><div><div className="eyebrow header-eyebrow"><span className="red-square"/> COMMAND CENTER / SANSA 001</div>
-          <h1>{tab==="overview"?"Sua agência, sob controle.":tab==="crm"?"Relações que importam.":tab==="radar"?"Oportunidades perto de você.":tab==="whatsapp"?"Conversas com contexto.":tab==="approvals"?"Nada acontece no escuro.":tab==="agents"?"Inteligência com direção.":"Cada ação deixa um rastro."}</h1>
-          <p className="lead-copy">{tab==="overview"?"Um lugar para acompanhar trabalho real, decisões e integrações — sem prometer automação que ainda não existe.":tab==="crm"?"O mesmo CRM de sempre. Agora com uma visão operacional, sem duplicar a fonte dos dados.":tab==="radar"?"Encontre comércios locais, investigue sinais verificáveis e prepare uma abordagem antes de decidir enviar.":tab==="whatsapp"?"Fluxo de atendimento preparado para a Meta. Nenhuma mensagem sai automaticamente.":tab==="approvals"?"Propostas ficam registradas para sua decisão. Aprovar não executa nem envia nada nesta versão.":tab==="agents"?"Especificações versionadas, ferramentas restritas e status verificável.":"Histórico de sincronizações e decisões registradas no backend."}</p></div>
+          <h1>{tab==="overview"?"Sua agência, sob controle.":tab==="crm"?"Relações que importam.":tab==="radar"?"Oportunidades perto de você.":tab==="sales"?"Projetos que fazem sentido.":tab==="whatsapp"?"Conversas com contexto.":tab==="approvals"?"Nada acontece no escuro.":tab==="agents"?"Inteligência com direção.":"Cada ação deixa um rastro."}</h1>
+          <p className="lead-copy">{tab==="overview"?"Um lugar para acompanhar trabalho real, decisões e integrações — sem prometer automação que ainda não existe.":tab==="crm"?"O mesmo CRM de sempre. Agora com uma visão operacional, sem duplicar a fonte dos dados.":tab==="radar"?"Encontre comércios locais, investigue sinais verificáveis e prepare uma abordagem antes de decidir enviar.":tab==="sales"?"Escopo, investimento e negociação com aprovação humana.":tab==="whatsapp"?"Fluxo de atendimento preparado para a Meta. Nenhuma mensagem sai automaticamente.":tab==="approvals"?"Propostas ficam registradas para sua decisão. Aprovar não executa nem envia nada nesta versão.":tab==="agents"?"Especificações versionadas, ferramentas restritas e status verificável.":"Histórico de sincronizações e decisões registradas no backend."}</p></div>
           <div className="page-actions"><button disabled={busy} className="btn-outline" onClick={()=>void perform("/api/crm/sync","POST",{},"CRM sincronizado. Planilha original preservada.")}><RefreshCw size={16} className={busy?"spin":""}/> Sincronizar CRM</button>
             <button className="btn-primary" onClick={()=>setShowComposer(true)}><Plus size={17}/> Nova ação</button></div>
         </div>
@@ -199,6 +201,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
         {tab==="radar" && <LocalRadar onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
         {tab==="whatsapp" && <WhatsAppInbox onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
+
+        {tab==="sales" && <SalesStudio onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
         {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}/></section>}
 

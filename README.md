@@ -55,3 +55,6 @@ O repositório `sansa-os-agents` foi preparado para execução diária em Railwa
 
 ## WhatsApp Meta — caixa de entrada preparada
 A aba **WhatsApp** consulta a nova API: status de credenciais da Meta, papéis dos cinco agentes, histórico real de mensagens recebidas, pedidos de revisão humana e rascunhos pendentes. Nenhuma conversa de demonstração é apresentada como real. O backend recebe webhooks assinados depois de configurar WABA, ID do número e App Secret, e a aplicação **não envia mensagens** até implementarmos autorização e as regras da Meta.
+
+## Propostas comerciais e negociação (v0.6)
+Nova aba **Propostas comerciais**: seleciona serviço e versão (Essencial/Completo/Sob medida), apresenta entregáveis, recebe objetivo e escopo do cliente, preço manual opcional em reais, prazo/condições/limites, e cria proposta pendente de aprovação. Também oferece respostas para objeções de valor, prazo, escopo, concorrência, pagamento e follow-up. Nada é enviado nem cobrado automaticamente. Consulte e edite rascunhos pendentes na Central de Aprovações.
