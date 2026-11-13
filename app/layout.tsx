@@ -3,6 +3,7 @@ import "./globals.css";
 import "./radar.css";
 import "./whatsapp.css";
 import "./sales.css";
+import "./email.css";
 
 export const metadata: Metadata = {
   title: "SANSA OS — Oficina Digital",

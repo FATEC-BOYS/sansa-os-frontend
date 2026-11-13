@@ -58,3 +58,6 @@ A aba **WhatsApp** consulta a nova API: status de credenciais da Meta, papéis d
 
 ## Propostas comerciais e negociação (v0.6)
 Nova aba **Propostas comerciais**: seleciona serviço e versão (Essencial/Completo/Sob medida), apresenta entregáveis, recebe objetivo e escopo do cliente, preço manual opcional em reais, prazo/condições/limites, e cria proposta pendente de aprovação. Também oferece respostas para objeções de valor, prazo, escopo, concorrência, pagamento e follow-up. Nada é enviado nem cobrado automaticamente. Consulte e edite rascunhos pendentes na Central de Aprovações.
+
+## E-mail comercial Zoho
+A aba **E-mail comercial** usa o backend (nunca credenciais no frontend) e exibe configuração, sincronização manual e últimas mensagens reais de `comercial@sansadigital.com.br` e demais aliases configurados. O backend usa IMAP somente leitura, salva prévias e prepara rascunhos internos para aprovação. **Não há envio automático nem mudança no Zoho**. Para ativar, configure credenciais IMAP específicas no serviço API Railway.

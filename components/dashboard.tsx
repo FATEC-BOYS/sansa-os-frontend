@@ -11,14 +11,16 @@ import type {Overview, Lead, Approval} from "@/lib/types";
 import LocalRadar from "@/components/local-radar";
 import WhatsAppInbox from "@/components/whatsapp-inbox";
 import SalesStudio from "@/components/sales-studio";
+import EmailInbox from "@/components/email-inbox";
 import {getManualOutboundLink} from "@/lib/outreach";
 
-type Tab = "overview" | "crm" | "radar" | "sales" | "whatsapp" | "approvals" | "agents" | "activity";
+type Tab = "overview" | "crm" | "radar" | "sales" | "email" | "whatsapp" | "approvals" | "agents" | "activity";
 const nav = [
   {id:"overview",label:"Visão geral",icon:LayoutDashboard},
   {id:"crm",label:"CRM & pipeline",icon:ContactRound},
   {id:"radar",label:"Radar local",icon:MapPin},
   {id:"sales",label:"Propostas comerciais",icon:BadgeCheck},
+  {id:"email",label:"E-mail comercial",icon:Mail},
   {id:"whatsapp",label:"WhatsApp",icon:MessageCircle},
   {id:"approvals",label:"Aprovações",icon:ClipboardCheck},
   {id:"agents",label:"Agentes",icon:Bot},
@@ -169,8 +171,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
       <main className="content">
         <div className="page-heading"><div><div className="eyebrow header-eyebrow"><span className="red-square"/> COMMAND CENTER / SANSA 001</div>
-          <h1>{tab==="overview"?"Sua agência, sob controle.":tab==="crm"?"Relações que importam.":tab==="radar"?"Oportunidades perto de você.":tab==="sales"?"Projetos que fazem sentido.":tab==="whatsapp"?"Conversas com contexto.":tab==="approvals"?"Nada acontece no escuro.":tab==="agents"?"Inteligência com direção.":"Cada ação deixa um rastro."}</h1>
-          <p className="lead-copy">{tab==="overview"?"Um lugar para acompanhar trabalho real, decisões e integrações — sem prometer automação que ainda não existe.":tab==="crm"?"O mesmo CRM de sempre. Agora com uma visão operacional, sem duplicar a fonte dos dados.":tab==="radar"?"Encontre comércios locais, investigue sinais verificáveis e prepare uma abordagem antes de decidir enviar.":tab==="sales"?"Escopo, investimento e negociação com aprovação humana.":tab==="whatsapp"?"Fluxo de atendimento preparado para a Meta. Nenhuma mensagem sai automaticamente.":tab==="approvals"?"Propostas ficam registradas para sua decisão. Aprovar não executa nem envia nada nesta versão.":tab==="agents"?"Especificações versionadas, ferramentas restritas e status verificável.":"Histórico de sincronizações e decisões registradas no backend."}</p></div>
+          <h1>{tab==="overview"?"Sua agência, sob controle.":tab==="crm"?"Relações que importam.":tab==="radar"?"Oportunidades perto de você.":tab==="sales"?"Projetos que fazem sentido.":tab==="email"?"Seu contato virou conversa.":tab==="whatsapp"?"Conversas com contexto.":tab==="approvals"?"Nada acontece no escuro.":tab==="agents"?"Inteligência com direção.":"Cada ação deixa um rastro."}</h1>
+          <p className="lead-copy">{tab==="overview"?"Um lugar para acompanhar trabalho real, decisões e integrações — sem prometer automação que ainda não existe.":tab==="crm"?"O mesmo CRM de sempre. Agora com uma visão operacional, sem duplicar a fonte dos dados.":tab==="radar"?"Encontre comércios locais, investigue sinais verificáveis e prepare uma abordagem antes de decidir enviar.":tab==="sales"?"Escopo, investimento e negociação com aprovação humana.":tab==="email"?"Mensagens reais do Zoho, com respostas revisáveis — sem envio automático.":tab==="whatsapp"?"Fluxo de atendimento preparado para a Meta. Nenhuma mensagem sai automaticamente.":tab==="approvals"?"Propostas ficam registradas para sua decisão. Aprovar não executa nem envia nada nesta versão.":tab==="agents"?"Especificações versionadas, ferramentas restritas e status verificável.":"Histórico de sincronizações e decisões registradas no backend."}</p></div>
           <div className="page-actions"><button disabled={busy} className="btn-outline" onClick={()=>void perform("/api/crm/sync","POST",{},"CRM sincronizado. Planilha original preservada.")}><RefreshCw size={16} className={busy?"spin":""}/> Sincronizar CRM</button>
             <button className="btn-primary" onClick={()=>setShowComposer(true)}><Plus size={17}/> Nova ação</button></div>
         </div>
@@ -225,6 +227,8 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
         {tab==="radar" && <LocalRadar onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
         {tab==="whatsapp" && <WhatsAppInbox onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
+
+        {tab==="email" && <EmailInbox onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
         {tab==="sales" && <SalesStudio onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
