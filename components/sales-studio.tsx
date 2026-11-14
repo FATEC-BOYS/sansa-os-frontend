@@ -45,6 +45,7 @@ export default function SalesStudio({onOpenApprovals}:{onOpenApprovals:()=>void}
   const [tab,setTab]=useState<"proposal"|"negotiation">("proposal");
   const [catalog,setCatalog]=useState<Catalog|null>(null);
   const [form,setForm]=useState<ProposalForm>(initial);
+  const [generationMode,setGenerationMode]=useState<"standard"|"ai">("standard");
   const [negotiation,setNegotiation]=useState({clientName:"",objection:"price" as Objection,context:"",agreedTerms:""});
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
@@ -65,11 +66,11 @@ export default function SalesStudio({onOpenApprovals}:{onOpenApprovals:()=>void}
     setBusy(true);
     try{
       await postJson("/api/sales/proposal-drafts",{
-        clientName:form.clientName,service:form.service,package:form.package,goal:form.goal,
+        generationMode,clientName:form.clientName,service:form.service,package:form.package,goal:form.goal,
         customScope:form.customScope,priceCents,timeline:form.timeline,paymentTerms:form.paymentTerms,
         dependencies:form.dependencies
       });
-      setNotice("Proposta salva na Central de Aprovações. Nada foi enviado.");
+      setNotice(`Proposta criada com ${generationMode==="ai"?"IA (OpenAI)":"modelo padrão"} e salva na Central de Aprovações. Nada foi enviado.`);
       setForm(initial);
     }catch(e){setError(e instanceof Error?e.message:"Falha ao preparar proposta");}
     finally{setBusy(false);}
@@ -102,6 +103,7 @@ export default function SalesStudio({onOpenApprovals}:{onOpenApprovals:()=>void}
         <div className="sales-heading"><span className="eyebrow">01 / PROPOSTA COMERCIAL</span><h2>Defina o valor do projeto.</h2>
           <p>Os pacotes sugerem entregáveis. O investimento, os prazos e as condições só aparecem na proposta se você os preencher.</p></div>
         <form className="sales-form" onSubmit={e=>void createProposal(e)}>
+          <label>Como gerar a proposta<span className="sales-select"><select value={generationMode} disabled={busy} onChange={e=>setGenerationMode(e.target.value as "standard"|"ai")}><option value="standard">Modelo padrão — sem IA</option><option value="ai">Com IA — OpenAI</option></select><ChevronDown size={14}/></span><small>Com IA, o objetivo recebe uma apresentação personalizada a partir do briefing. Escopo, preço, prazo e pagamento são preservados. Usa créditos da API.</small></label>
           <label>Nome do negócio / cliente<input required maxLength={140} minLength={2} value={form.clientName} placeholder="Ex.: Ateliê da Praça" onChange={e=>setForm({...form,clientName:e.target.value})}/></label>
           <div className="sales-pair">
             <label>Serviço <span className="sales-select"><select value={form.service} onChange={e=>setForm({...form,service:e.target.value as ServiceId})} disabled={!catalog}>
