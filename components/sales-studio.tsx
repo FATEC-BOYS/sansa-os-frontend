@@ -44,6 +44,7 @@ async function postJson<T>(path:string,body:unknown):Promise<T>{
 }
 
 export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:()=>void;leads?:Lead[]}){
+  const [objectiveConfirmed,setObjectiveConfirmed]=useState(false);
   const [leadId,setLeadId]=useState("");
   const [tab,setTab]=useState<"proposal"|"negotiation">("proposal");
   const [catalog,setCatalog]=useState<Catalog|null>(null);
@@ -78,13 +79,13 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
     try{priceCents=parseBrlPrice(form.price);}catch(e){setError(e instanceof Error?e.message:"Valor inválido");return;}
     setBusy(true);
     try{
-      await postJson("/api/sales/proposal-drafts",{
-        ...(leadId?{leadId}:{}),generationMode,clientName:form.clientName,service:form.service,package:form.package,goal:form.goal,
+      const result=await postJson<{approval:{kind:string}}>("/api/sales/proposal-drafts",{
+        objectiveConfirmed,...(leadId?{leadId}:{}),generationMode,clientName:form.clientName,service:form.service,package:form.package,goal:form.goal,
         customScope:form.customScope,priceCents,timeline:form.timeline,paymentTerms:form.paymentTerms,
         dependencies:form.dependencies
       });
-      setNotice(`Proposta criada com ${generationMode==="ai"?"IA (OpenAI)":"modelo padrão"} e salva na Central de Aprovações. Nada foi enviado.`);
-      setForm(initial);setLeadId("");
+      setNotice(result.approval.kind==="briefing"?"Falta confirmar o objetivo: perguntas de briefing salvas nas Aprovações. Nenhuma proposta ou mensagem foi enviada.":`Proposta criada com ${generationMode==="ai"?"IA (OpenAI)":"modelo padrão"} e salva na Central de Aprovações. Nada foi enviado.`);
+      setForm(initial);setLeadId("");setObjectiveConfirmed(false);
     }catch(e){setError(e instanceof Error?e.message:"Falha ao preparar proposta");}
     finally{setBusy(false);}
   }
@@ -120,9 +121,9 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
         <div className="sales-heading"><span className="eyebrow">01 / PROPOSTA COMERCIAL</span><h2>Defina o valor do projeto.</h2>
           <p>Os pacotes sugerem entregáveis. O investimento, os prazos e as condições só aparecem na proposta se você os preencher.</p></div>
         <form className="sales-form" onSubmit={e=>void createProposal(e)}>
-          <label>Como gerar a proposta<span className="sales-select"><select value={generationMode} disabled={busy} onChange={e=>setGenerationMode(e.target.value as "standard"|"ai")}><option value="standard">Modelo padrão — sem IA</option><option value="ai">Com IA — OpenAI</option></select><ChevronDown size={14}/></span><small>Com IA, o objetivo recebe uma apresentação personalizada a partir do briefing. Escopo, preço, prazo e pagamento são preservados. Usa créditos da API.</small></label>
+          <label>Como gerar a proposta<span className="sales-select"><select value={generationMode} disabled={busy} onChange={e=>setGenerationMode(e.target.value as "standard"|"ai")}><option value="standard">Modelo padrão — sem IA</option><option value="ai">Com IA — OpenAI</option></select><ChevronDown size={14}/></span><small>Com IA, o objetivo confirmado recebe uma apresentação personalizada com contexto do CRM (tipo, etapa e próximo passo), sem enviar o histórico completo. Escopo, preço, prazo e pagamento são preservados. Usa créditos da API.</small></label>
           <label>Contato do CRM<span className="sales-select"><select value={leadId} disabled={busy} onChange={e=>{
-            const id=e.target.value;setLeadId(id);const lead=leads.find(x=>x.id===id);
+            const id=e.target.value;setLeadId(id);setObjectiveConfirmed(false);const lead=leads.find(x=>x.id===id);
             setForm({...initial,clientName:lead?.name??""});
           }}><option value="">Novo cliente / preenchimento manual</option>{leads.map(lead=><option key={lead.id} value={lead.id}>{lead.name} · {lead.status}</option>)}</select><ChevronDown size={14}/></span></label>
           {leadId&&<div className="sales-scope"><strong>Contexto do CRM — conferência interna</strong><p>{leads.find(x=>x.id===leadId)?.nextStep||"Nenhum próximo passo registrado."}</p><small>O rascunho ficará vinculado a este contato. O objetivo e as condições precisam ser preenchidos; histórico e valores estimados não são copiados automaticamente.</small></div>}
@@ -135,7 +136,8 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
               <option value="essencial">Essencial</option><option value="completo">Completo</option><option value="sob_medida">Sob medida</option>
             </select><ChevronDown size={14}/></span></label>
           </div>
-          <label>Objetivo do cliente<textarea rows={3} required minLength={10} maxLength={800} placeholder="O que o projeto precisa resolver ou comunicar?" value={form.goal} onChange={e=>setForm({...form,goal:e.target.value})}/></label>
+          <label><span><input type="checkbox" checked={objectiveConfirmed} onChange={e=>setObjectiveConfirmed(e.target.checked)}/> Já confirmei com o cliente o objetivo deste projeto</span><small>Sem confirmação, vamos preparar perguntas de briefing usando o contexto do CRM, sem inventar necessidades ou consumir a API.</small></label>
+          <label>Objetivo do cliente<textarea rows={3} required={objectiveConfirmed} minLength={objectiveConfirmed?10:undefined} maxLength={800} placeholder="O que o projeto precisa resolver ou comunicar?" value={form.goal} onChange={e=>setForm({...form,goal:e.target.value})}/></label>
           <div className="sales-scope">
             <strong>{service?.name??"Catálogo"} · {pack?.label??""}</strong>
             <p>{pack?.note??"Carregando serviços..."}</p>
@@ -150,7 +152,7 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
           <label>Condições de pagamento (opcional)<input maxLength={300} placeholder="Só preencher quando aprovado por você" value={form.paymentTerms} onChange={e=>setForm({...form,paymentTerms:e.target.value})}/></label>
           <label>Dependências e exclusões<textarea rows={2} maxLength={500} placeholder="Ex.: domínio, hospedagem, textos, fotos, integrações e revisões a definir" value={form.dependencies} onChange={e=>setForm({...form,dependencies:e.target.value})}/></label>
           <div className="sales-submit"><p><ShieldCheck size={16}/> Sem assinatura, cobrança ou envio automático. O rascunho poderá ser editado antes da aprovação.</p>
-            <button className="btn-primary" type="submit" disabled={!catalog||busy}>{busy?<LoaderCircle size={16} className="spin"/>:<ArrowRight size={16}/>} Preparar proposta</button>
+            <button className="btn-primary" type="submit" disabled={!catalog||busy}>{busy?<LoaderCircle size={16} className="spin"/>:<ArrowRight size={16}/>} {objectiveConfirmed?"Preparar proposta":"Preparar briefing"}</button>
           </div>
         </form>
       </>:<>
