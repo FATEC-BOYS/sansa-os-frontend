@@ -4,7 +4,8 @@ import {useEffect,useState} from "react";
 import {Bot,CheckCircle2,ChevronRight,Clock3,ExternalLink,FileText,LockKeyhole,MessageCircle,RefreshCw,ShieldAlert,ShieldCheck} from "lucide-react";
 
 type MetaStatus={
-  integration:string;webhookReady:boolean;outboundEnabled:boolean;policy:string
+  integration:string;webhookReady:boolean;outboundEnabled:boolean;policy:string;
+  missing?:string[];lastVerifiedEvent?:{at:string;received:number;duplicates:number;ignored:number}|null
 };
 type Conversation={
   id:string;displayContact:string;profileName:string|null;
@@ -55,7 +56,7 @@ export default function WhatsAppInbox({onOpenApprovals}:{onOpenApprovals:()=>voi
     <div className="wa-banner">
       <div><span className="eyebrow">SANSA OS / META BUSINESS</span>
         <h2>Atendimento em cinco etapas.</h2>
-        <p>A recepção segura está preparada. Ativar a conta na Meta é o próximo passo.</p>
+        <p>Acompanhe a configuração, os eventos validados e as conversas recebidas.</p>
       </div>
       <MessageCircle size={34}/>
     </div>
@@ -66,13 +67,16 @@ export default function WhatsAppInbox({onOpenApprovals}:{onOpenApprovals:()=>voi
       </div>
       {error&&<p className="wa-error">{error}</p>}
       <div className="wa-status-grid">
-        <div><span>Webhook / credenciais Meta</span><strong className={status?.webhookReady?"wa-ok":"wa-pending"}>
-          {status?.webhookReady?<><CheckCircle2 size={16}/> Configurado</>:<><Clock3 size={16}/> Aguardando ativação</>}
+        <div><span>Configuração do webhook</span><strong className={status?.webhookReady?"wa-ok":"wa-pending"}>
+          {status?.webhookReady?<><CheckCircle2 size={16}/> Cadastrada</>:<><Clock3 size={16}/> Incompleta</>}
         </strong></div>
+        <div><span>Último evento com assinatura válida</span><strong className={status?.lastVerifiedEvent?"wa-ok":"wa-pending"}>{status?.lastVerifiedEvent?fmt(status.lastVerifiedEvent.at):"Ainda não confirmado"}</strong></div>
         <div><span>Envio automático</span><strong className="wa-pending"><LockKeyhole size={16}/> Desabilitado</strong></div>
         <div><span>Conversas recebidas</span><strong>{conversations.length}</strong></div>
       </div>
-      <p className="wa-footnote">Sem número ativo, não há mensagens reais para processar. Ao integrar, as mensagens recebidas serão registradas somente depois de validar a assinatura da Meta. Não existe envio de boletos, Pix ou mensagens automáticas.</p>
+      <p className="wa-footnote">Variáveis cadastradas não confirmam que a chave está correta. O último evento só aparece após a assinatura da Meta e o formato serem validados. Testes com números fictícios podem ser ignorados sem criar conversas. As respostas são rascunhos por regras, sem envio automático.</p>
+      {status?.missing&&status.missing.length>0&&<p className="wa-error">Configuração pendente: {status.missing.join(", ")}</p>}
+      {status?.lastVerifiedEvent&&<p className="wa-footnote">Último evento: {status.lastVerifiedEvent.received} mensagens registradas · {status.lastVerifiedEvent.duplicates} duplicadas · {status.lastVerifiedEvent.ignored} alterações de outro número ignoradas. Este histórico não garante a configuração atual.</p>}
     </section>
     <section className="panel">
       <div className="panel-top"><div><span className="eyebrow">AGENT ORCHESTRATION</span><h2>Fluxo do atendimento</h2></div><Bot size={20}/></div>
@@ -85,7 +89,7 @@ export default function WhatsAppInbox({onOpenApprovals}:{onOpenApprovals:()=>voi
     </section>
     <section className="panel">
       <div className="panel-top"><div><span className="eyebrow">INBOUND MESSAGES</span><h2>Conversas recebidas</h2></div><ShieldCheck size={20}/></div>
-      {conversations.length===0?<div className="wa-empty"><MessageCircle size={28}/><strong>Nenhuma conversa registrada</strong><p>Quando a Meta estiver ativa, os contatos aparecerão aqui. Não exibimos dados simulados como se fossem reais.</p></div>:
+      {conversations.length===0?<div className="wa-empty"><MessageCircle size={28}/><strong>Nenhuma conversa registrada</strong><p>As conversas aparecerão após o recebimento de mensagens do número configurado com assinatura válida.</p></div>:
         <div className="wa-inbox-grid">
           <div className="wa-conversation-list">{conversations.map(item=><button key={item.id} className={"wa-conversation"+(selected?.id===item.id?" active":"")} onClick={()=>void openConversation(item.id)}>
             <strong>{item.profileName||item.displayContact}</strong>
