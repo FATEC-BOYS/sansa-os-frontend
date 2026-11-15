@@ -230,7 +230,7 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
         {tab==="email" && <EmailInbox onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
-        {tab==="sales" && <SalesStudio onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
+        {tab==="sales" && <SalesStudio leads={data?.leads??[]} onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
         {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}
           onEdit={(id,title,content)=>perform("/api/sales/drafts/"+id,"PATCH",{title,content},"Rascunho comercial atualizado para revisão.")}
