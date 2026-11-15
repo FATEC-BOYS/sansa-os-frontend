@@ -16,6 +16,7 @@ export interface Lead {
   updatedAt: string;
 }
 export interface Approval {
+  proposalVersionId?:string|null;
   id: string;
   title: string;
   summary: string;
