@@ -51,6 +51,16 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
   const [generationMode,setGenerationMode]=useState<"standard"|"ai">("standard");
   const [negotiation,setNegotiation]=useState({clientName:"",objection:"price" as Objection,context:"",agreedTerms:""});
   const [busy,setBusy]=useState(false);
+  const [testingAi,setTestingAi]=useState(false);
+  const [aiResult,setAiResult]=useState<{ok:boolean;message:string}|null>(null);
+  async function testAi(){
+    setTestingAi(true);setAiResult(null);
+    try{
+      const result=await postJson<{model:string;verifiedAt:string}>("/api/sales/ai-test",{});
+      setAiResult({ok:true,message:`Conexão confirmada com ${result.model} às ${new Date(result.verifiedAt).toLocaleTimeString("pt-BR")}. Nenhuma proposta foi criada.`});
+    }catch(e){setAiResult({ok:false,message:e instanceof Error?e.message:"Não foi possível testar a IA."});}
+    finally{setTestingAi(false);}
+  }
   const [error,setError]=useState<string|null>(null);
   const [notice,setNotice]=useState<string|null>(null);
   useEffect(()=>{
@@ -102,6 +112,10 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
       {notice&&<div className="sales-message success"><CheckCircle2 size={16}/>{notice}
         <button onClick={onOpenApprovals}>Revisar agora <ArrowRight size={14}/></button>
       </div>}
+      <div className="sales-scope"><strong>Conexão com a OpenAI</strong><p>Teste com uma mensagem técnica, sem dados de clientes. Consome uma pequena quantidade de créditos da API e não cria rascunhos.</p>
+        <button type="button" className="btn-outline small" disabled={testingAi||busy} onClick={()=>void testAi()}>{testingAi?"Testando conexão…":"Testar conexão com IA"}</button>
+        {aiResult&&<p role="status" className={aiResult.ok?"sales-message success":"sales-message error"}>{aiResult.message}</p>}
+      </div>
       {tab==="proposal"?<>
         <div className="sales-heading"><span className="eyebrow">01 / PROPOSTA COMERCIAL</span><h2>Defina o valor do projeto.</h2>
           <p>Os pacotes sugerem entregáveis. O investimento, os prazos e as condições só aparecem na proposta se você os preencher.</p></div>
