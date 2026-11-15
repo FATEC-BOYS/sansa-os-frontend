@@ -3,6 +3,8 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowRight,CheckCircle2,ChevronDown,ClipboardCheck,FileText,LoaderCircle,PencilLine,ShieldCheck} from "lucide-react";
 
+import type {Lead} from "@/lib/types";
+
 type PackageKey="essencial"|"completo"|"sob_medida";
 type ServiceId="landing_page"|"site_institucional"|"identidade_visual"|"ux_ui"|"site_redesign";
 type CatalogService={id:ServiceId;name:string;shortDescription:string;packages:Record<PackageKey,{label:string;deliverables:string[];note:string}>};
@@ -41,7 +43,8 @@ async function postJson<T>(path:string,body:unknown):Promise<T>{
   return data as T;
 }
 
-export default function SalesStudio({onOpenApprovals}:{onOpenApprovals:()=>void}){
+export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:()=>void;leads?:Lead[]}){
+  const [leadId,setLeadId]=useState("");
   const [tab,setTab]=useState<"proposal"|"negotiation">("proposal");
   const [catalog,setCatalog]=useState<Catalog|null>(null);
   const [form,setForm]=useState<ProposalForm>(initial);
@@ -66,12 +69,12 @@ export default function SalesStudio({onOpenApprovals}:{onOpenApprovals:()=>void}
     setBusy(true);
     try{
       await postJson("/api/sales/proposal-drafts",{
-        generationMode,clientName:form.clientName,service:form.service,package:form.package,goal:form.goal,
+        ...(leadId?{leadId}:{}),generationMode,clientName:form.clientName,service:form.service,package:form.package,goal:form.goal,
         customScope:form.customScope,priceCents,timeline:form.timeline,paymentTerms:form.paymentTerms,
         dependencies:form.dependencies
       });
       setNotice(`Proposta criada com ${generationMode==="ai"?"IA (OpenAI)":"modelo padrão"} e salva na Central de Aprovações. Nada foi enviado.`);
-      setForm(initial);
+      setForm(initial);setLeadId("");
     }catch(e){setError(e instanceof Error?e.message:"Falha ao preparar proposta");}
     finally{setBusy(false);}
   }
@@ -104,7 +107,12 @@ export default function SalesStudio({onOpenApprovals}:{onOpenApprovals:()=>void}
           <p>Os pacotes sugerem entregáveis. O investimento, os prazos e as condições só aparecem na proposta se você os preencher.</p></div>
         <form className="sales-form" onSubmit={e=>void createProposal(e)}>
           <label>Como gerar a proposta<span className="sales-select"><select value={generationMode} disabled={busy} onChange={e=>setGenerationMode(e.target.value as "standard"|"ai")}><option value="standard">Modelo padrão — sem IA</option><option value="ai">Com IA — OpenAI</option></select><ChevronDown size={14}/></span><small>Com IA, o objetivo recebe uma apresentação personalizada a partir do briefing. Escopo, preço, prazo e pagamento são preservados. Usa créditos da API.</small></label>
-          <label>Nome do negócio / cliente<input required maxLength={140} minLength={2} value={form.clientName} placeholder="Ex.: Ateliê da Praça" onChange={e=>setForm({...form,clientName:e.target.value})}/></label>
+          <label>Contato do CRM<span className="sales-select"><select value={leadId} disabled={busy} onChange={e=>{
+            const id=e.target.value;setLeadId(id);const lead=leads.find(x=>x.id===id);
+            setForm({...form,clientName:lead?.name??""});
+          }}><option value="">Novo cliente / preenchimento manual</option>{leads.map(lead=><option key={lead.id} value={lead.id}>{lead.name} · {lead.status}</option>)}</select><ChevronDown size={14}/></span></label>
+          {leadId&&<div className="sales-scope"><strong>Contexto do CRM — conferência interna</strong><p>{leads.find(x=>x.id===leadId)?.nextStep||"Nenhum próximo passo registrado."}</p><small>O rascunho ficará vinculado a este contato. O objetivo e as condições precisam ser preenchidos; histórico e valores estimados não são copiados automaticamente.</small></div>}
+          <label>Nome do negócio / cliente<input readOnly={Boolean(leadId)} required maxLength={140} minLength={2} value={form.clientName} placeholder="Ex.: Ateliê da Praça" onChange={e=>setForm({...form,clientName:e.target.value})}/></label>
           <div className="sales-pair">
             <label>Serviço <span className="sales-select"><select value={form.service} onChange={e=>setForm({...form,service:e.target.value as ServiceId})} disabled={!catalog}>
               {(catalog?.services??[]).map(s=><option value={s.id} key={s.id}>{s.name}</option>)}
