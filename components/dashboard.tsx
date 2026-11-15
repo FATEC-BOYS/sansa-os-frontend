@@ -12,6 +12,7 @@ import LocalRadar from "@/components/local-radar";
 import WhatsAppInbox from "@/components/whatsapp-inbox";
 import SalesStudio from "@/components/sales-studio";
 import EmailInbox from "@/components/email-inbox";
+import IntegrationHealth from "@/components/integration-health";
 import {getManualOutboundLink} from "@/lib/outreach";
 
 type Tab = "overview" | "crm" | "radar" | "sales" | "email" | "whatsapp" | "approvals" | "agents" | "activity";
@@ -236,7 +237,7 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
           onEdit={(id,title,content)=>perform("/api/sales/drafts/"+id,"PATCH",{title,content},"Rascunho comercial atualizado para revisão.")}
           /></section>}
 
-        {tab==="agents" && <><div className="agent-banner"><Sparkles size={20}/><div><strong>{data?.agents.some(a=>a.lastRunAt)?"Execuções registradas pelo worker na Railway.":"Agentes prontos para executar na Railway."}</strong>
+        {tab==="agents" && <><IntegrationHealth/><div className="agent-banner"><Sparkles size={20}/><div><strong>{data?.agents.some(a=>a.lastRunAt)?"Execuções registradas pelo worker na Railway.":"Agentes prontos para executar na Railway."}</strong>
             <p>O Comercial prepara apenas propostas revisáveis de oportunidades elegíveis; Operações verifica o estado real do sistema. Os demais agentes seguem em preparação. Nenhum deles envia mensagens automaticamente.</p></div></div>
           <div className="agent-grid">{(data?.agents ?? [
             {id:"commercial",name:"Comercial",description:"Prospeção e qualificação",status:"not_connected"},
