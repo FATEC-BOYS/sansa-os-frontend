@@ -39,7 +39,21 @@ export default function CommercialWorkbench({leads,onOpenApprovals}:{leads:Lead[
   async function open(id:string){await act(async()=>{
     const result=await request<Dossier>('briefings/'+id);setCurrent(result);setData(result.data);setLeadId(result.leadId||'');setDirty(false);setEstimateId('');setCommercialConfirmed(false);setDiscountApproved(false);setCompare('');resetCalculation();setStep('briefing');
   });}
-  async function reload(){if(current)setCurrent(await request<Dossier>('briefings/'+current.id));await list();}
+  async function reload(){
+    if(current){
+      const latest=await request<Dossier>('briefings/'+current.id);
+      if(latest.revision!==current.revision&&dirty){
+        // Keep the edit base revision: saving must still conflict rather than
+        // silently overwrite a newer briefing with locally stale fields.
+        setCurrent({...current,estimates:latest.estimates,proposals:latest.proposals});
+        setNotice('Outra sessão alterou este briefing. Suas edições foram mantidas; reabra a versão salva antes de substituir os dados.');
+      }else{
+        setCurrent(latest);
+        if(latest.revision!==current.revision){setData(latest.data);setLeadId(latest.leadId||'');setEstimateId('');setCommercialConfirmed(false);setDiscountApproved(false);}
+      }
+    }
+    await list();
+  }
   async function save(){await act(async()=>{
     const result=await request<Dossier>('briefings'+(current?'/'+current.id:''),current?'PUT':'POST',{leadId:leadId||null,data,...(current?{expectedRevision:current.revision}:{})});
     setCurrent(await request<Dossier>('briefings/'+result.id));setData(result.data);setDirty(false);setEstimateId('');setCommercialConfirmed(false);await list();
@@ -48,7 +62,7 @@ export default function CommercialWorkbench({leads,onOpenApprovals}:{leads:Lead[
   async function calculate(){await act(async()=>{
     if(!current||dirty)throw new Error('Salve o briefing antes de calcular.');
     if(!confirmed)throw new Error('Confirme os parâmetros informados.');
-    const result=await request<Estimate>(`briefings/${current.id}/estimates`,'POST',{expectedRevision:current.revision,parameters:{name:cost.name,parametersConfirmed:true,lines:lines.map(l=>({discipline:l.discipline,minutes:decimal(l.hours,60),hourlyCostCents:decimal(l.hourly,100)})),fixedCostCents:decimal(cost.fixed,100),toolsCents:decimal(cost.tools,100),taxBps:decimal(cost.tax,100),riskBps:decimal(cost.risk,100),marginBps:decimal(cost.margin,100)}});
+    const result=await request<Estimate>(`briefings/${current.id}/estimates`,'POST',{expectedRevision:current.revision,parameters:{name:cost.name,parametersConfirmed:true,lines:lines.map(l=>({discipline:l.discipline,minutes:Math.ceil(decimal(l.hours,100)*60/100),hourlyCostCents:decimal(l.hourly,100)})),fixedCostCents:decimal(cost.fixed,100),toolsCents:decimal(cost.tools,100),taxBps:decimal(cost.tax,100),riskBps:decimal(cost.risk,100),marginBps:decimal(cost.margin,100)}});
     await reload();setEstimateId(result.id);setCommercialConfirmed(false);setDiscountApproved(false);setNotice('Cenário e memorial de cálculo salvos. O investimento final continua sob sua decisão.');
   });}
   const estimate=current?.estimates?.find(x=>x.id===estimateId);
@@ -62,11 +76,11 @@ export default function CommercialWorkbench({leads,onOpenApprovals}:{leads:Lead[
     <fieldset className="sales-form commercial-fields" disabled={busy}>
       <label>Retomar briefing salvo<select aria-label="Retomar briefing salvo" disabled={busy||dirty} value={current?.id||''} onChange={e=>{if(e.target.value)void open(e.target.value);}}><option value="">Selecione um briefing</option>{items.map(x=><option key={x.id} value={x.id}>{x.data.company||'Sem nome'} · revisão {x.revision}</option>)}</select></label>
       <button type="button" className="btn-outline" disabled={busy||dirty} onClick={()=>{setCurrent(null);setData(empty);setLeadId('');setEstimateId('');setCompare('');setCommercialConfirmed(false);setDiscountApproved(false);resetCalculation();setStep('briefing');}}>Novo briefing</button>
-      {dirty&&<p role="status">Alterações não salvas. Salve antes de trocar de briefing ou sair desta aba.</p>}
+      {dirty&&<div><p role="status">Alterações não salvas. Salve antes de trocar de briefing ou sair desta aba.</p><button type="button" className="btn-outline" onClick={()=>{if(current)void open(current.id);else{setData(empty);setLeadId('');setDirty(false);}}}>Descartar alterações e reabrir salvo</button></div>}
       <div className="sales-tabbar">{(['briefing','cost','versions'] as const).map((s,i)=><button type="button" key={s} className={step===s?'active':''} onClick={()=>setStep(s)}>{i+1}. {s==='briefing'?'Briefing':s==='cost'?'Custo e preço':'Propostas e PDF'}</button>)}</div>
       {error&&<p className="sales-message error" role="alert">{error}</p>}{notice&&<p className="sales-message success" role="status">{notice}</p>}
       {step==='briefing'&&<>
-        <label>Contato do CRM (opcional)<select value={leadId} disabled={Boolean(current)||busy} onChange={e=>{setLeadId(e.target.value);setData({...empty,company:leads.find(x=>x.id===e.target.value)?.name||''});setDirty(true);}}><option value="">Cliente sem vínculo no CRM</option>{leads.map(l=><option value={l.id} key={l.id}>{l.name}</option>)}</select></label>
+        <label>Contato do CRM (opcional)<select value={leadId} disabled={Boolean(current)||busy} onChange={e=>{const id=e.target.value;setLeadId(id);setData(previous=>({...previous,company:leads.find(x=>x.id===id)?.name||previous.company,objectiveConfirmed:false}));setDirty(true);}}><option value="">Cliente sem vínculo no CRM</option>{leads.map(l=><option value={l.id} key={l.id}>{l.name}</option>)}</select></label>
         <label>Empresa<input value={data.company} readOnly={Boolean(leadId)} maxLength={140} onChange={e=>edit('company',e.target.value)}/></label>
         <label>Serviço<select value={data.service} onChange={e=>edit('service',e.target.value)}>{[['landing_page','Landing page'],['site_institucional','Site institucional'],['identidade_visual','Identidade visual'],['ux_ui','UI/UX'],['site_redesign','Redesign de site']].map(([id,label])=><option value={id} key={id}>{label}</option>)}</select></label>
         {([['objective','Objetivo do projeto',800],['audience','Público',600],['deliverables','Entregáveis combinados',1400],['references','Referências',2000],['desiredDeadline','Prazo desejado',300],['budget','Orçamento informado (opcional)',300],['constraints','Restrições e premissas',1000]] as const).map(([key,label,max])=><label key={key}>{label}<textarea aria-label={label} rows={2} maxLength={max} value={data[key]} onChange={e=>edit(key,e.target.value)}/></label>)}
@@ -76,7 +90,7 @@ export default function CommercialWorkbench({leads,onOpenApprovals}:{leads:Lead[
         {current&&<p>Revisão {current.revision} · {current.missing?.length?'Incompleto: confirme empresa, objetivo, público e entregáveis.':'Dados salvos. Abra Custo e preço para continuar.'}</p>}
       </>}
       {step==='cost'&&<>
-        <p>Preencha seus custos reais. Não há valores sugeridos. Imposto e margem são percentuais sobre o preço; risco é aplicado sobre o custo.</p>
+        <p>Preencha seus custos reais. Não há valores sugeridos. Imposto e margem são percentuais sobre o preço; risco é aplicado sobre o custo. Horas fracionadas são arredondadas para o minuto seguinte.</p>
         <label>Nome do cenário<input value={cost.name} maxLength={100} onChange={e=>{setCost({...cost,name:e.target.value});setConfirmed(false);}} placeholder="Ex.: Escopo inicial"/></label>
         {lines.map((line,i)=><fieldset className="commercial-line" key={i}><legend>Disciplina {i+1}</legend>{([['discipline','Disciplina'],['hours','Horas'],['hourly','Custo por hora (R$)']] as const).map(([key,label])=><label key={key}>{label}<input inputMode={key==='discipline'?'text':'decimal'} value={line[key]} onChange={e=>{setLines(lines.map((l,j)=>i===j?{...l,[key]:e.target.value}:l));setConfirmed(false);}}/></label>)}<button type="button" className="btn-outline" disabled={lines.length===1} onClick={()=>{setLines(lines.filter((_,j)=>i!==j));setConfirmed(false);}}>Remover disciplina</button></fieldset>)}
         <button type="button" className="btn-outline" disabled={lines.length>=30} onClick={()=>{setLines([...lines,{discipline:'',hours:'',hourly:''}]);setConfirmed(false);}}>Adicionar disciplina</button>
