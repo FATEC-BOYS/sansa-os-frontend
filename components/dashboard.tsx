@@ -60,7 +60,7 @@ function ApprovalList({items,busy,onReview,onEdit}:{items:Approval[];busy:boolea
   const [copiedId,setCopiedId]=useState<string|null>(null);
   if (!items.length) return <EmptyState title="Nenhuma decisão pendente" description="Rascunhos e propostas de ações vão aparecer aqui antes de qualquer execução externa."/>;
   return <div className="approvals-list">{items.map(item=>{
-    const editable=item.status==="pending"&&["commercial_proposal","negotiation_reply"].includes(item.kind);
+    const editable=!item.proposalVersionId&&item.status==="pending"&&["commercial_proposal","negotiation_reply"].includes(item.kind);
     const draftEdit=editing?.id===item.id?editing:null;
     return <article className="approval-row" key={item.id}>
       <div className="approval-top"><span className="eyebrow">{item.agent.replace("_"," ")} / {item.kind.replaceAll("_"," ")}</span>
@@ -231,7 +231,7 @@ export default function Dashboard({initialData,connectionError}:{initialData:Ove
 
         {tab==="email" && <EmailInbox onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
 
-        {tab==="sales" && <SalesStudio leads={data?.leads??[]} onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/>}
+        <div hidden={tab!=="sales"}><SalesStudio leads={data?.leads??[]} onOpenApprovals={()=>{setTab("approvals");void refresh().catch(()=>{});}}/></div>
 
         {tab==="approvals" && <section className="panel approval-panel"><div className="panel-top"><div><span className="eyebrow">HUMAN IN THE LOOP</span><h2>Central de decisões</h2><p>Após aprovar, abra a mensagem no WhatsApp ou no aplicativo de e-mail para conferir e enviar manualmente.</p></div><Status label={`${pending.length} pendente(s)`} kind={pending.length?"warning":"muted"}/></div><ApprovalList items={data?.approvals ?? []} busy={busy} onReview={(id,status)=>void perform("/api/approvals/"+id,"PATCH",{status},"Decisão registrada. Nenhuma ação externa executada.")}
           onEdit={(id,title,content)=>perform("/api/sales/drafts/"+id,"PATCH",{title,content},"Rascunho comercial atualizado para revisão.")}

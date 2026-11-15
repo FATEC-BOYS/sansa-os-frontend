@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from "react";
 import {ArrowRight,CheckCircle2,ChevronDown,ClipboardCheck,FileText,LoaderCircle,PencilLine,ShieldCheck} from "lucide-react";
 
 import type {Lead} from "@/lib/types";
+import CommercialWorkbench from './commercial-workbench';
 
 type PackageKey="essencial"|"completo"|"sob_medida";
 type ServiceId="landing_page"|"site_institucional"|"identidade_visual"|"ux_ui"|"site_redesign";
@@ -99,6 +100,8 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
     finally{setBusy(false);}
   }
   return <div className="sales-root">
+    <CommercialWorkbench leads={leads} onOpenApprovals={onOpenApprovals}/>
+    <details className="panel"><summary>Rascunho rápido, teste de IA e negociação</summary>
     <div className="sales-hero"><div><span className="eyebrow">SANSA OS / COMERCIAL</span>
       <h2>Da conversa ao <em>projeto.</em></h2>
       <p>Propostas com escopo verificável, preços sob seu controle e negociações sem promessas inventadas.</p></div>
@@ -172,5 +175,6 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
       </>}
     </section>
     <div className="sales-tip"><ShieldCheck size={16}/><p>Projeto fechado, faseado e recorrente são estratégias comerciais; mensalidades e cobrança de pagamentos ainda dependem de acordos aprovados e integrações financeiras futuras.</p></div>
+    </details>
   </div>;
 }
