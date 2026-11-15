@@ -109,7 +109,7 @@ export default function SalesStudio({onOpenApprovals,leads=[]}:{onOpenApprovals:
           <label>Como gerar a proposta<span className="sales-select"><select value={generationMode} disabled={busy} onChange={e=>setGenerationMode(e.target.value as "standard"|"ai")}><option value="standard">Modelo padrão — sem IA</option><option value="ai">Com IA — OpenAI</option></select><ChevronDown size={14}/></span><small>Com IA, o objetivo recebe uma apresentação personalizada a partir do briefing. Escopo, preço, prazo e pagamento são preservados. Usa créditos da API.</small></label>
           <label>Contato do CRM<span className="sales-select"><select value={leadId} disabled={busy} onChange={e=>{
             const id=e.target.value;setLeadId(id);const lead=leads.find(x=>x.id===id);
-            setForm({...form,clientName:lead?.name??""});
+            setForm({...initial,clientName:lead?.name??""});
           }}><option value="">Novo cliente / preenchimento manual</option>{leads.map(lead=><option key={lead.id} value={lead.id}>{lead.name} · {lead.status}</option>)}</select><ChevronDown size={14}/></span></label>
           {leadId&&<div className="sales-scope"><strong>Contexto do CRM — conferência interna</strong><p>{leads.find(x=>x.id===leadId)?.nextStep||"Nenhum próximo passo registrado."}</p><small>O rascunho ficará vinculado a este contato. O objetivo e as condições precisam ser preenchidos; histórico e valores estimados não são copiados automaticamente.</small></div>}
           <label>Nome do negócio / cliente<input readOnly={Boolean(leadId)} required maxLength={140} minLength={2} value={form.clientName} placeholder="Ex.: Ateliê da Praça" onChange={e=>setForm({...form,clientName:e.target.value})}/></label>
